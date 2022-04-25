@@ -8,7 +8,7 @@ var screenVideoProfile = '480p_2'; // 640 × 480 @ 30fps
 
 // create client instances for camera (client) and screen share (screenClient)
 var client = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'}); 
-var screenClient;
+var screenClient = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'}); 
 
 // stream references (keep track of active streams) 
 var remoteStreams = {}; // remote streams obj struct [id : stream] 
@@ -23,8 +23,6 @@ var localStreams = {
     stream: {}
   }
 };
-
-AgoraRTC.Logger.enableLogUpload(); // auto upload logs
 
 var mainStreamId; // reference to main stream
 var screenShareActive = false; // flag for screen share 
@@ -67,18 +65,7 @@ client.on('stream-subscribed', function (evt) {
   if( $('#full-screen-video').is(':empty') ) { 
     mainStreamId = remoteId;
     remoteStream.play('full-screen-video');
-    $('#main-stats-btn').show();
-    $('#main-stream-stats-btn').show();
-  } else if (remoteId == 49024) {
-    // move the current main stream to miniview
-    remoteStreams[mainStreamId].stop(); // stop the main video stream playback
-    client.setRemoteVideoStreamType(remoteStreams[mainStreamId], 1); // subscribe to the low stream
-    addRemoteStreamMiniView(remoteStreams[mainStreamId]); // send the main video stream to a container
-    // set the screen-share as the main 
-    mainStreamId = remoteId;
-    remoteStream.play('full-screen-video');s
   } else {
-    client.setRemoteVideoStreamType(remoteStream, 1); // subscribe to the low stream
     addRemoteStreamMiniView(remoteStream);
   }
 });
@@ -166,68 +153,63 @@ function createCameraStream(uid) {
 
 // SCREEN SHARING
 function initScreenShare(agoraAppId, channelName) {
-  screenClient = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'}); 
-  console.log("AgoraRTC screenClient initialized");
-  var uid = 49024; // hardcoded uid to make it easier to identify on remote clients
-  screenClient = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'}); 
   screenClient.init(agoraAppId, function () {
     console.log("AgoraRTC screenClient initialized");
+    joinChannelAsScreenShare(channelName);
+    screenShareActive = true;
+    // TODO: add logic to swap button
   }, function (err) {
     console.log("[ERROR] : AgoraRTC screenClient init failed", err);
-  });
-  // keep track of the uid of the screen stream. 
-  localStreams.screen.id = uid;  
-  
-  // Create the stream for screen sharing.
-  var screenStream = AgoraRTC.createStream({
-    streamID: uid,
-    audio: false, // Set the audio attribute as false to avoid any echo during the call.
-    video: false,
-    screen: true, // screen stream
-    screenAudio: true,
-    mediaSource:  'screen', // Firefox: 'screen', 'application', 'window' (select one)
-  });
-  // initialize the stream 
-  // -- NOTE: this must happen directly from user interaction, if called by a promise or callback it will fail.
-  screenStream.init(function(){
-    console.log("getScreen successful");
-    localStreams.screen.stream = screenStream; // keep track of the screen stream
-    screenShareActive = true;
-    $("#screen-share-btn").prop("disabled",false); // enable button
-    screenClient.join(token, channelName, uid, function(uid) { 
+  });  
+}
+
+function joinChannelAsScreenShare(channelName) {
+  var token = generateToken();
+  var userID = null; // set to null to auto generate uid on successfull connection
+  screenClient.join(token, channelName, userID, function(uid) { 
+    localStreams.screen.id = uid;  // keep track of the uid of the screen stream.
+    
+    // Create the stream for screen sharing.
+    var screenStream = AgoraRTC.createStream({
+      streamID: uid,
+      audio: false, // Set the audio attribute as false to avoid any echo during the call.
+      video: false,
+      screen: true, // screen stream
+      mediaSource:  'screen', // Firefox: 'screen', 'application', 'window' (select one)
+    });
+    screenStream.setScreenProfile(screenVideoProfile); // set the profile of the screen
+    screenStream.init(function(){
+      console.log("getScreen successful");
+      localStreams.screen.stream = screenStream; // keep track of the screen stream
+      $("#screen-share-btn").prop("disabled",false); // enable button
       screenClient.publish(screenStream, function (err) {
         console.log("[ERROR] : publish screen stream error: " + err);
       });
-    }, function(err) {
-      console.log("[ERROR] : join channel as screen-share failed", err);
+    }, function (err) {
+      console.log("[ERROR] : getScreen failed", err);
+      localStreams.screen.id = ""; // reset screen stream id
+      localStreams.screen.stream = {}; // reset the screen stream
+      screenShareActive = false; // resest screenShare
+      toggleScreenShareBtn(); // toggle the button icon back (will appear disabled)
     });
-  }, function (err) {
-    console.log("[ERROR] : getScreen failed", err);
-    localStreams.screen.id = ""; // reset screen stream id
-    localStreams.screen.stream = {}; // reset the screen stream
-    screenShareActive = false; // resest screenShare
-    toggleScreenShareBtn(); // toggle the button icon back
-    $("#screen-share-btn").prop("disabled",false); // enable button
+  }, function(err) {
+    console.log("[ERROR] : join channel as screen-share failed", err);
   });
-  var token = generateToken();
+
   screenClient.on('stream-published', function (evt) {
     console.log("Publish screen stream successfully");
-    if( $('#full-screen-video').is(':empty') ) { 
-      $('#main-stats-btn').show();
-      $('#main-stream-stats-btn').show();
-    } else {
-      // move the current main stream to miniview
-      remoteStreams[mainStreamId].stop(); // stop the main video stream playback
-      client.setRemoteVideoStreamType(remoteStreams[mainStreamId], 1); // subscribe to the low stream
-      addRemoteStreamMiniView(remoteStreams[mainStreamId]); // send the main video stream to a container
-    }
-    mainStreamId = localStreams.screen.id;
-    localStreams.screen.stream.play('full-screen-video');
+    localStreams.camera.stream.disableVideo(); // disable the local video stream (will send a mute signal)
+    localStreams.camera.stream.stop(); // stop playing the local stream
+    // TODO: add logic to swap main video feed back from container
+    remoteStreams[mainStreamId].stop(); // stop the main video stream playback
+    addRemoteStreamMiniView(remoteStreams[mainStreamId]); // send the main video stream to a container
+    // localStreams.screen.stream.play('full-screen-video'); // play the screen share as full-screen-video (vortext effect?)
+    $("#video-btn").prop("disabled",true); // disable the video button (as cameara video stream is disabled)
   });
   
   screenClient.on('stopScreenSharing', function (evt) {
     console.log("screen sharing stopped", err);
-  }); 
+  });
 }
 
 function stopScreenShare() {

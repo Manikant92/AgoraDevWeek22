@@ -1,3 +1,4 @@
+
 // UI buttons
 function enableUiControls(localStream) {
 
@@ -33,35 +34,41 @@ function enableUiControls(localStream) {
 
   // keyboard listeners 
   $(document).keypress(function(e) {
-    switch (e.key) {
-      case "m":
-        console.log("squick toggle the mic");
-        toggleMic(localStream);
-        break;
-      case "v":
-        console.log("quick toggle the video");
-        toggleVideo(localStream);
-        break; 
-      case "s":
-        console.log("initializing screen share");
-        toggleScreenShareBtn(); // set screen share button icon
-        $("#screen-share-btn").prop("disabled",true); // disable the button on click
-        if(screenShareActive){
-          stopScreenShare();
-        } else {
-          initScreenShare(); 
-        }
-        break;  
-      case "q":
-        console.log("so sad to see you quit the channel");
-        leaveChannel(); 
-        break;   
-      default:  // do nothing
-    }
-
-    // (for testing) 
-    if(e.key === "r") { 
-      window.history.back(); // quick reset
+    // enable shortcut keys when chat is not visible
+    if(!$(chatToggleBtn.hasClass('is-visible'))){
+      switch (e.key) {
+        case "m":
+          console.log("squick toggle the mic");
+          toggleMic(localStream);
+          break;
+        case "v":
+          console.log("quick toggle the video");
+          toggleVideo(localStream);
+          break; 
+        case "s":
+          console.log("initializing screen share");
+          toggleScreenShareBtn(); // set screen share button icon
+          $("#screen-share-btn").prop("disabled",true); // disable the button on click
+          if(screenShareActive){
+            stopScreenShare();
+          } else {
+            initScreenShare(); 
+          }
+          break;  
+        case "q":
+          console.log("so sad to see you quit the channel");
+          leaveChannel(); 
+          break;   
+        default:  // do nothing
+      }
+  
+      // (for testing) 
+      if(e.key === "r") { 
+        window.history.back(); // quick reset
+      }
+    } else if(e.keyCode === 13 && !e.shiftKey) {
+      // user taps 'return' key to send a local message
+      sendLocalMsg();
     }
   });
 }
@@ -106,3 +113,15 @@ function toggleVideo(localStream) {
     toggleVisibility("#no-local-video", true); // show the user icon when video is disabled
   }
 }
+
+// force uid input to range (1001-1017) - max 17 broadcaster users
+var $uidInput = $("#form-uid")
+$uidInput.on("change", function (evt) {
+    var value = $uidInput.val()
+    if (value == 1018 || value < 1000) {
+      value = 1001;
+    } else if (value == 1000 || value > 1018 ) {
+      value = 1017;
+    }   
+    $uidInput.val(value)
+})
