@@ -8,7 +8,7 @@ ul li{
   bottom: 0;
   position: fixed;
   margin: 1em;
-  right: 0;
+  left: 0;
   z-index: 1031;
 }
 
@@ -94,7 +94,7 @@ ul li{
 
 .chat {
   position: fixed;
-  right: 85px;
+  left: 85px;
   bottom: 20px;
   width: 400px;
   font-size: 12px;
@@ -126,12 +126,12 @@ ul li{
 }
 
 .chat_header .span {
-  float:right;
+  float:left;
 }
 
 .chat_fullscreen_loader {
   display: none;
-    float: right;
+    float: left;
     cursor: pointer;
     /* margin: 10px; */
     font-size: 20px;
@@ -324,7 +324,7 @@ ul li{
     line-height: 18px;
     overflow-y: auto;
     width: 100%;
-    float: right;
+    float: left;
     padding-bottom: 5px;
 }
 
