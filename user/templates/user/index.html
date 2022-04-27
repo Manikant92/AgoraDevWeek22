@@ -11,7 +11,7 @@
   <meta name="language" content="English">
   <meta name="author" content="vinayak sharma">
 
-  <title>{{title}}</title>
+  <title>LessonTutor</title>
 
 
   <!-- bootstrap file -->
@@ -31,7 +31,7 @@
 
 
   <!-- message here -->
-
+  {% if user.is_authenticated %}
   {% if messages %}
   {% for message in messages %}
 
@@ -40,6 +40,7 @@
   </script>
 
   {% endfor %}
+  {% endif %}
   {% endif %}
 
   <!--_______________________________________________-->
@@ -63,11 +64,11 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" class="styleheader" href="{% url "index" %}">project</a>
+          <a href="{% url 'homepage' %}" class="navbar-brand" class="styleheader"><span class="text-primary">Lesson</span>Tutor</a>
         </div>
         <div class="collapse navbar-collapse" id="mainNavBar">
           <ul class="nav navbar-nav navbar-right">
-            <li><a href="{% url "index" %}">Home</a></li>
+            <li><a href="{% url 'homepage' %}">Home</a></li>
 
             {% if user.is_authenticated %}
             <li><a href="{% url "logout" %}"><span class="glyphicon glyphicon-log-out"></span> &nbsp; Logout</a></li>
@@ -89,7 +90,7 @@
     {% if user.is_authenticated %}
     <center><h1>welcome back {{user.username}}!</h1></center>
     {% else %}
-    <center><h1>log in, plz . . .</h1></center>
+    <center><h1>Log in, please . . .</h1></center>
     {% endif %}
     {% endblock %}
   </div>
